@@ -387,7 +387,7 @@
     catEl.classList.add("petted");
   }
 
-  function currentSideDuration() {
+function currentSideDuration() {
     const steps = Math.floor(score / SIDE_DURATION_STEP_EVERY);
     const d = SIDE_DURATION_START - steps * SIDE_DURATION_STEP;
     return Math.max(SIDE_DURATION_MIN, d);
