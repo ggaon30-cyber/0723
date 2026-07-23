@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<style>
+  :root {
+    --bg: #fdf6ec;
+    --accent: #ff8a5c;
+    --danger: #e74c3c;
+    --text: #3a2f2f;
+  }
+  * { box-sizing: border-box; }
+  body, html {
+    margin: 0; padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", sans-serif;
+    background: var(--bg);
+  }
+  #wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 12px 0 24px 0;
+  }
+  #scoreboard {
+    display: flex;
+    gap: 24px;
+    margin-bottom: 10px;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  #scoreboard span.label {
+    font-weight: 400;
+    font-size: 13px;
+    color: #888;
+    display: block;
+  }
+  #stage {
+    position: relative;
+    width: 320px;
+    height: 440px;
+    background: linear-gradient(180deg, #ffe9d6 0%, #ffd9b8 100%);
+    border-radius: 20px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  #cat {
+    width: 200px;
+    height: 290px;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    transform-origin: 50% 85%;
+    touch-action: manipulation;
+  }
+
+  @keyframes petBounce {
+    0%   { transform: scale(1) rotate(0deg); }
+    25%  { transform: scale(0.92, 1.07) rotate(-2deg); }
+    55%  { transform: scale(1.06, 0.94) rotate(2deg); }
+    100% { transform: scale(1) rotate(0deg); }
+  }
+  #cat.petted { animation: petBounce 0.32s ease; }
+
+  @keyframes gameOverPounce {
+    0%   { transform: scale(1) rotate(0deg); }
+    30%  { transform: scale(1.16) rotate(-3deg); }
+    60%  { transform: scale(1.08) rotate(3deg); }
+    100% { transform: scale(1.05) rotate(0deg); }
+  }
+  #cat.gameover-cat {
+    animation: gameOverPounce 0.5s ease forwards;
+    filter: drop-shadow(0 0 14px rgba(231,76,60,0.55));
+  }
+
+  @keyframes shakeStage {
+    10%, 90% { transform: translateX(-3px); }
+    20%, 80% { transform: translateX(5px); }
+    30%, 50%, 70% { transform: translateX(-9px); }
+    40%, 60% { transform: translateX(9px); }
+  }
+  #stage.shake { animation: shakeStage 0.5s ease; }
+
+  #flash-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(231,76,60,0);
+    pointer-events: none;
+    z-index: 5;
+  }
+  @keyframes flashRed {
+    0%   { background: rgba(231,76,60,0); }
+    30%  { background: rgba(231,76,60,0.45); }
+    100% { background: rgba(231,76,60,0); }
+  }
+  #flash-overlay.show { animation: flashRed 0.55s ease; }
+
+  #warning-banner {
+    position: absolute;
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--danger);
+    color: white;
+    font-weight: 700;
+    font-size: 13px;
+    padding: 6px 14px;
+    border-radius: 999px;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    pointer-events: none;
+    z-index: 6;
+  }
+  #warning-banner.show { opacity: 1; }
+
+  #floaters { position: absolute; inset: 0; pointer-events: none; z-index: 6; }
+  .floater {
+    position: absolute;
+    font-weight: 800;
+    font-size: 20px;
+    color: var(--accent);
+    animation: floatUp 0.7s ease-out forwards;
+  }
+  @keyframes floatUp {
+    0% { opacity: 1; transform: translateY(0); }
+    100% { opacity: 0; transform: translateY(-40px); }
+  }
+
+  #overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(20, 10, 10, 0.75);
+    color: white;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 20px;
+    z-index: 10;
+  }
+  #overlay.show { display: flex; }
+  #overlay h2 { margin: 0 0 6px 0; font-size: 26px; }
+  #overlay p { margin: 4px 0; font-size: 15px; opacity: 0.9; }
+  #overlay .best-tag { color: #ffd76b; font-weight: 700; }
+  #restart-btn {
+    margin-top: 16px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 10px 22px;
+    border-radius: 999px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  #restart-btn:active { transform: scale(0.96); }
+
+  #start-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(20, 10, 10, 0.55);
+    color: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 20px;
+    z-index: 10;
+  }
+  #start-overlay button {
+    margin-top: 14px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 10px 22px;
+    border-radius: 999px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  #hint {
+    margin-top: 10px;
+    font-size: 13px;
+    color: #a08b7a;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div id="scoreboard">
+    <div>
+      <span class="label">현재 점수</span>
+      <span id="score">0</span>
+    </div>
+    <div>
+      <span class="label">최고 기록</span>
+      <span id="best">0</span>
+    </div>
+  </div>
+
+  <div id="stage">
+    <div id="flash-overlay"></div>
+    <div id="warning-banner">위험! 앞을 보고 있어요</div>
+    <svg id="cat" viewBox="0 0 220 320" xmlns="http://www.w3.org/2000/svg"></svg>
+    <div id="floaters"></div>
+
+    <div id="overlay">
+      <h2>😿 게임 오버!</h2>
+      <p>이번 점수: <span id="final-score">0</span></p>
+      <p class="best-tag">최고 기록: <span id="final-best">0</span></p>
+      <button id="restart-btn">다시 시작</button>
+    </div>
+
+    <div id="start-overlay">
+      <h2 style="margin:0 0 6px 0;">🐱 고양이 쓰다듬기</h2>
+      <p style="font-size:13px; opacity:0.9; margin:0;">뒤돌아 있을 때만 살짝!<br>완전히 돌아보면 게임 오버예요.</p>
+      <button id="start-btn">게임 시작</button>
+    </div>
+  </div>
+
+  <div id="hint">뒤돌아 있을 때 클릭 → 점수 획득 · 앞을 볼 때 클릭 → 게임 오버</div>
+</div>
+
+<script>
+(function() {
+  const STATE_BACK = "back";
+  const STATE_SIDE = "side";
+  const STATE_FRONT = "front";
+
+  const SIDE_DURATION_START = 1500;
+  const SIDE_DURATION_MIN = 280;
+  const SIDE_DURATION_STEP = 30;
+  const FRONT_DURATION = 1000;
+
+  const NEXT_EVENT_MIN = 1200;
+  const NEXT_EVENT_MAX = 2600;
+
+  let score = 0;
+  let best = 0;
+  let currentState = STATE_BACK;
+  let gameRunning = false;
+  let timers = [];
+
+  const scoreEl = document.getElementById("score");
+  const bestEl = document.getElementById("best");
+  const catEl = document.getElementById("cat");
+  const stageEl = document.getElementById("stage");
+  const warningEl = document.getElementById("warning-banner");
+  const flashEl = document.getElementById("flash-overlay");
+  const overlayEl = document.getElementById("overlay");
+  const finalScoreEl = document.getElementById("final-score");
+  const finalBestEl = document.getElementById("final-best");
+  const restartBtn = document.getElementById("restart-btn");
+  const startOverlay = document.getElementById("start-overlay");
+  const startBtn = document.getElementById("start-btn");
+  const floatersEl = document.getElementById("floaters");
+
+  try {
+    const saved = localStorage.getItem("cat_game_best_score");
+    if (saved) best = parseInt(saved, 10) || 0;
+  } catch (e) {}
+  bestEl.textContent = best;
+
+  function saveBest() {
+    try { localStorage.setItem("cat_game_best_score", String(best)); } catch (e) {}
+  }
+
+  function clearTimers() {
+    timers.forEach(t => clearTimeout(t));
+    timers = [];
+  }
+
+  function addTimer(fn, ms) {
+    const id = setTimeout(fn, ms);
+    timers.push(id);
+    return id;
+  }
+
+  // ---------- 몸통 (뒷모습 기준, 상태에 따라 꼬리/자세만 변화) ----------
+  const BODY_NORMAL = `
+    <path d="M45,318 Q33,195 65,163 Q95,131 110,131 Q125,131 155,163 Q187,195 175,318 Z" fill="#c98a5b"/>
+    <path d="M165,262 Q207,255 210,196 Q212,157 187,146" stroke="#c98a5b" stroke-width="17" stroke-linecap="round" fill="none"/>
+    <path d="M78,178 Q110,192 142,178" stroke="#8a5a36" stroke-width="2" fill="none" opacity="0.35"/>
+    <path d="M70,220 Q110,232 150,220" stroke="#8a5a36" stroke-width="2" fill="none" opacity="0.3"/>
+    <ellipse cx="75" cy="315" rx="16" ry="9" fill="#a5713f"/>
+    <ellipse cx="150" cy="315" rx="16" ry="9" fill="#a5713f"/>
+  `;
+
+  const BODY_ALERT = `
+    <path d="M40,318 Q28,200 60,165 Q95,129 112,129 Q129,129 158,165 Q192,200 182,318 Z" fill="#c98a5b"/>
+    <path d="M178,225 Q198,165 178,112 Q172,97 180,90" stroke="#c98a5b" stroke-width="18" stroke-linecap="round" fill="none"/>
+    <path d="M178,225 Q198,165 178,112" stroke="#8a5a36" stroke-width="2" fill="none" opacity="0.4" stroke-dasharray="3 7"/>
+    <path d="M60,272 Q72,256 92,259" stroke="#8a5a36" stroke-width="2" fill="none" opacity="0.4"/>
+    <path d="M162,272 Q150,256 130,259" stroke="#8a5a36" stroke-width="2" fill="none" opacity="0.4"/>
+    <ellipse cx="72" cy="315" rx="17" ry="9" fill="#a5713f"/>
+    <ellipse cx="152" cy="315" rx="17" ry="9" fill="#a5713f"/>
+  `;
+
+  // ---------- 머리 ----------
+  const HEAD_BACK = `
+    <ellipse cx="110" cy="105" rx="72" ry="68" fill="#c98a5b"/>
+    <polygon points="55,60 35,10 85,45" fill="#c98a5b"/>
+    <polygon points="165,60 185,10 135,45" fill="#c98a5b"/>
+    <polygon points="55,58 43,27 78,48" fill="#8a5a36"/>
+    <polygon points="165,58 177,27 142,48" fill="#8a5a36"/>
+    <path d="M110 50 Q104 100 110 155" stroke="#8a5a36" stroke-width="3" fill="none" opacity="0.5"/>
+    <path d="M78 80 Q110 90 142 80" stroke="#8a5a36" stroke-width="2" fill="none" opacity="0.4"/>
+  `;
+
+  const HEAD_SIDE = `
+    <ellipse cx="115" cy="105" rx="72" ry="68" fill="#c98a5b"/>
+    <polygon points="60,60 40,10 90,45" fill="#c98a5b"/>
+    <polygon points="170,60 190,10 140,45" fill="#c98a5b"/>
+    <polygon points="60,58 48,27 83,48" fill="#8a5a36"/>
+    <polygon points="170,58 182,27 147,48" fill="#8a5a36"/>
+    <ellipse cx="160" cy="108" rx="14" ry="16" fill="#fff3e6"/>
+    <circle cx="163" cy="108" r="5" fill="#2e2e2e"/>
+    <path d="M150 130 Q160 135 168 130" stroke="#8a5a36" stroke-width="2" fill="none"/>
+    <path d="M108 45 Q102 95 108 150" stroke="#8a5a36" stroke-width="2.5" fill="none" opacity="0.35"/>
+  `;
+
+  const HEAD_FRONT = `
+    <ellipse cx="110" cy="105" rx="74" ry="69" fill="#c98a5b"/>
+    <polygon points="50,55 30,5 85,45" fill="#c98a5b"/>
+    <polygon points="170,55 190,5 135,45" fill="#c98a5b"/>
+    <polygon points="50,53 38,22 78,48" fill="#8a5a36"/>
+    <polygon points="170,53 182,22 142,48" fill="#8a5a36"/>
+    <ellipse cx="82" cy="110" rx="16" ry="18" fill="#fff3e6"/>
+    <ellipse cx="138" cy="110" rx="16" ry="18" fill="#fff3e6"/>
+    <path d="M70 102 L94 112" stroke="#2e2e2e" stroke-width="3"/>
+    <path d="M150 102 L126 112" stroke="#2e2e2e" stroke-width="3"/>
+    <circle cx="86" cy="112" r="6" fill="#2e2e2e"/>
+    <circle cx="134" cy="112" r="6" fill="#2e2e2e"/>
+    <path d="M65 85 L50 68 M75 78 L65 58 M155 85 L170 68 M145 78 L155 58" stroke="#8a5a36" stroke-width="2"/>
+    <polygon points="110,128 100,140 120,140" fill="#e88a8a"/>
+    <path d="M110 140 Q110 148 102 150 M110 140 Q110 148 118 150" stroke="#2e2e2e" stroke-width="2" fill="none"/>
+    <path d="M85 155 Q110 140 135 155" stroke="#2e2e2e" stroke-width="2.5" fill="none"/>
+    <line x1="55" y1="120" x2="25" y2="112" stroke="#2e2e2e" stroke-width="1.5"/>
+    <line x1="55" y1="128" x2="24" y2="128" stroke="#2e2e2e" stroke-width="1.5"/>
+    <line x1="165" y1="120" x2="195" y2="112" stroke="#2e2e2e" stroke-width="1.5"/>
+    <line x1="165" y1="128" x2="196" y2="128" stroke="#2e2e2e" stroke-width="1.5"/>
+  `;
+
+  function renderCat(state) {
+    let svg = "";
+    if (state === STATE_BACK) {
+      svg = BODY_NORMAL + HEAD_BACK;
+    } else if (state === STATE_SIDE) {
+      svg = BODY_NORMAL + HEAD_SIDE;
+    } else if (state === STATE_FRONT) {
+      svg = BODY_ALERT + HEAD_FRONT;
+    }
+    catEl.innerHTML = svg;
+  }
+
+  function setState(state) {
+    currentState = state;
+    renderCat(state);
+    if (state === STATE_FRONT) {
+      warningEl.classList.add("show");
+    } else {
+      warningEl.classList.remove("show");
+    }
+  }
+
+  function showFloater(text) {
+    const el = document.createElement("div");
+    el.className = "floater";
+    el.textContent = text;
+    el.style.left = (40 + Math.random() * 140) + "px";
+    el.style.top = (150 + Math.random() * 60) + "px";
+    floatersEl.appendChild(el);
+    setTimeout(() => el.remove(), 700);
+  }
+
+  function playPetMotion() {
+    catEl.classList.remove("petted");
+    void catEl.offsetWidth; // 리플로우 강제로 애니메이션 재시작
+    catEl.classList.add("petted");
+  }
+
+  function currentSideDuration() {
+    const d = SIDE_DURATION_START - score * SIDE_DURATION_STEP;
+    return Math.max(SIDE_DURATION_MIN, d);
+  }
+
+  function scheduleNextTurnEvent() {
+    if (!gameRunning) return;
+    const wait = NEXT_EVENT_MIN + Math.random() * (NEXT_EVENT_MAX - NEXT_EVENT_MIN);
+    addTimer(runTurnSequence, wait);
+  }
+
+  function runTurnSequence() {
+    if (!gameRunning) return;
+    setState(STATE_SIDE);
+    const sideDur = currentSideDuration();
+    addTimer(() => {
+      if (!gameRunning) return;
+      setState(STATE_FRONT);
+      addTimer(() => {
+        if (!gameRunning) return;
+        setState(STATE_BACK);
+        scheduleNextTurnEvent();
+      }, FRONT_DURATION);
+    }, sideDur);
+  }
+
+  function handlePet(e) {
+    e.preventDefault();
+    if (!gameRunning) return;
+
+    if (currentState === STATE_FRONT) {
+      endGame();
+      return;
+    }
+    score += 1;
+    scoreEl.textContent = score;
+    showFloater("+1");
+    playPetMotion();
+  }
+
+  catEl.addEventListener("click", handlePet);
+  catEl.addEventListener("touchstart", handlePet, { passive: false });
+
+  function endGame() {
+    gameRunning = false;
+    clearTimers();
+    setState(STATE_FRONT);
+
+    stageEl.classList.add("shake");
+    flashEl.classList.add("show");
+    catEl.classList.remove("petted");
+    void catEl.offsetWidth;
+    catEl.classList.add("gameover-cat");
+
+    if (score > best) {
+      best = score;
+      saveBest();
+    }
+    bestEl.textContent = best;
+
+    addTimer(() => {
+      stageEl.classList.remove("shake");
+      flashEl.classList.remove("show");
+      finalScoreEl.textContent = score;
+      finalBestEl.textContent = best;
+      overlayEl.classList.add("show");
+    }, 550);
+  }
+
+  function startGame() {
+    score = 0;
+    scoreEl.textContent = 0;
+    overlayEl.classList.remove("show");
+    startOverlay.style.display = "none";
+    stageEl.classList.remove("shake");
+    flashEl.classList.remove("show");
+    catEl.classList.remove("gameover-cat", "petted");
+    gameRunning = true;
+    setState(STATE_BACK);
+    scheduleNextTurnEvent();
+  }
+
+  restartBtn.addEventListener("click", startGame);
+  startBtn.addEventListener("click", startGame);
+
+  renderCat(STATE_BACK);
+})();
+</script>
+</body>
+</html>
