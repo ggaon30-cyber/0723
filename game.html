@@ -236,7 +236,8 @@
 
   const SIDE_DURATION_START = 1500;
   const SIDE_DURATION_MIN = 280;
-  const SIDE_DURATION_STEP = 30;
+  const SIDE_DURATION_STEP = 80;   // 감소 폭 (ms)
+  const SIDE_DURATION_STEP_EVERY = 3; // 몇 점마다 감소시킬지
   const FRONT_DURATION = 1000;
 
   const NEXT_EVENT_MIN = 1200;
@@ -387,7 +388,8 @@
   }
 
   function currentSideDuration() {
-    const d = SIDE_DURATION_START - score * SIDE_DURATION_STEP;
+    const steps = Math.floor(score / SIDE_DURATION_STEP_EVERY);
+    const d = SIDE_DURATION_START - steps * SIDE_DURATION_STEP;
     return Math.max(SIDE_DURATION_MIN, d);
   }
 
