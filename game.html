@@ -236,8 +236,8 @@
 
   const SIDE_DURATION_START = 1500;
   const SIDE_DURATION_MIN = 280;
-  const SIDE_DURATION_STEP = 80;   // 감소 폭 (ms)
-  const SIDE_DURATION_STEP_EVERY = 3; // 몇 점마다 감소시킬지
+  const SIDE_DURATION_STEP = 80;       // 감소 폭 (ms)
+  const SIDE_DURATION_STEP_EVERY = 3;  // 몇 번 돌아볼 때마다 감소시킬지
   const FRONT_DURATION = 1000;
 
   const NEXT_EVENT_MIN = 1200;
@@ -248,6 +248,7 @@
   let currentState = STATE_BACK;
   let gameRunning = false;
   let timers = [];
+  let turnCount = 0; // 고양이가 뒤돌아본 횟수
 
   const scoreEl = document.getElementById("score");
   const bestEl = document.getElementById("best");
@@ -387,8 +388,8 @@
     catEl.classList.add("petted");
   }
 
-function currentSideDuration() {
-    const steps = Math.floor(score / SIDE_DURATION_STEP_EVERY);
+  function currentSideDuration() {
+    const steps = Math.floor(turnCount / SIDE_DURATION_STEP_EVERY);
     const d = SIDE_DURATION_START - steps * SIDE_DURATION_STEP;
     return Math.max(SIDE_DURATION_MIN, d);
   }
@@ -401,6 +402,7 @@ function currentSideDuration() {
 
   function runTurnSequence() {
     if (!gameRunning) return;
+    turnCount += 1;
     setState(STATE_SIDE);
     const sideDur = currentSideDuration();
     addTimer(() => {
@@ -459,6 +461,7 @@ function currentSideDuration() {
 
   function startGame() {
     score = 0;
+    turnCount = 0;
     scoreEl.textContent = 0;
     overlayEl.classList.remove("show");
     startOverlay.style.display = "none";
